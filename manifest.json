@@ -6,6 +6,12 @@
 
   "description": "\"Freebox Downloader\" est une web extension compatible firefox et chrome. Elle permet de déléguer les téléchargements du navigateur vers le gestionnaire de téléchargement de la Freebox.",
 
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "freebox-downloader@baaarb.com",
+      "strict_min_version": "42.0"
+    }
+  },
 //  "icons": {
 //    "48": "icons/border-48.png"
 //  },

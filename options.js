@@ -4,9 +4,11 @@
 * TODO : devenir asinchrone !
 */
 function doRequest(type, url, params) {
+    console.log("REQ : " + type + " url :" + url);
     var req = new XMLHttpRequest();
     req.open(type, url, false); //synchronous
-    req.send(params);
+    req.setRequestHeader("Content-Type", "application/json");
+    req.send(JSON.stringify(params));
     if (req.status == 200) {
         console.log(req.responseText);
         var resJson = JSON.parse(req.responseText);
@@ -18,6 +20,7 @@ function doRequest(type, url, params) {
 /////////////////////////////
 
 var FBX_URL = '';
+var FBX_URL_REMOTE = ''; //pour acces distant
 // https://[api_domain]:[freebox_port]/[api_base_url]/v[major_api_version]/
 
 /**
@@ -30,9 +33,9 @@ function discover() {
     var jsonDiscover = doRequest('GET', url, null);
     console.log("API DOMMAIN : " + jsonDiscover.api_domain);
     var apiVersionMajor = parseInt(jsonDiscover.api_version);
-    FBX_URL = "https://" + jsonDiscover.api_domain + ':' + jsonDiscover.https_port  + jsonDiscover.api_base_url + 'v' + apiVersionMajor + '/';
+    FBX_URL_REMOTE = "https://" + jsonDiscover.api_domain + ':' + jsonDiscover.https_port  + jsonDiscover.api_base_url + 'v' + apiVersionMajor + '/';
     ///LOCAL
-    FBX_URL = "http://mafreebox.freebox.fr" + jsonDiscover.api_base_url + 'v' + apiVersionMajor + '/';
+    FBX_URL = "https://mafreebox.freebox.fr" + jsonDiscover.api_base_url + 'v' + apiVersionMajor + '/';
     console.log('DISCOVERED URL : ' + FBX_URL);
 }
 
@@ -40,7 +43,7 @@ function discover() {
 * Envoi la raquete d'autorisation. Recupere et retransmet app_token ,et track_id
 **/
 function requestAuthorisation() {
-    var requestAuthUrl = FBX_URL + 'login/authorize';
+    var requestAuthUrl = FBX_URL + 'login/authorize/';
     var requestAuthParams = {
         "app_id":"fr.baaarb.freebox-downloader",
         "app_name":"Freebox Downloader",
@@ -71,11 +74,14 @@ function verifReponseUtilisateur(authInfo) {
         var userResponse = doRequest('GET', $url, null);
         switch (userResponse.result.status) {
             case 'granted':
-                console.log("USER A ACCEPTE : arret des requetes de verif et stockage de app_token...")
+                console.log("USER A ACCEPTE : arret des requetes de verif et stockage de app_token... "+ authInfo.app_token );
                 clearInterval(processVerifEtatValidation);
                 appliAccepteeParUtilisateur = true;
                 //todo: SUCCESS : STORE authInfo.app_token
-                browser.storage.sync.set("app_token", authInfo.app_token);
+//                var appToken = {
+//                    appToken : authInfo.app_token
+//                }
+                browser.storage.sync.set({appToken: authInfo.app_token});
                 break;
 
             case 'unknown':
@@ -134,11 +140,16 @@ function associer() {
     console.log("démarrage de l'association avec la freebox");
     //1.discovery
     discover();
+    console.log("discover OK");
     //2.authorize
     var jsonAuthResponse = requestAuthorisation();
     //
     //3.if authorise OK...
     attendReponseUtilisateur(jsonAuthResponse.result);
+
+     //store url
+     browser.storage.sync.set({fbxUrl: FBX_URL, fbxUrlRemote : FBX_URL_REMOTE});
+
 }
 
 //////////////////////////////////////////////////////////////////////////
